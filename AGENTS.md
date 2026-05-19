@@ -107,11 +107,13 @@ Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` →
 - `AlonaIngest` — delegates to `Ingest`
 - Tests: envelope unit + ingest integration (`apps/alona_ingest/test/`, fixtures, no broker)
 
+- `AlonaIngest.Adapters.Esp32Adapter` — `normalize/1` → v1 envelope maps from gateway JSON (living room MVP reading → slug map); no MQTT/topic routing yet
+
 **Still stub (Phase B — MQTT / device adapters):**
 
 - `AlonaIngest.Mqtt.Client` — `connect/0` → `{:error, :not_implemented}`
 - `AlonaIngest.Mqtt.TopicRouter` — `route/2` → `{:ok, :ignored}`
-- `AlonaIngest.Adapters.VictronAdapter` / `Esp32Adapter` — `normalize/1` → `{:error, :not_implemented}`
+- `AlonaIngest.Adapters.VictronAdapter` — `normalize/1` → `{:error, :not_implemented}`
 - `AlonaIngest.Workers.MeasurementWriter` — `enqueue/1` → `:ok`
 - `AlonaIngest.Normalizers.MeasurementNormalizer` — `normalize/1` delegates to `Ingest.parse/1`; prefer `Ingest.ingest/1` for persistence
 
@@ -352,13 +354,13 @@ Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` →
 
 ## ESP32
 
-**Status:** **NOT IMPLEMENTED** (wire path)
+**Status:** **PARTIAL** (adapter normalize only; no live MQTT wire path)
 
 **Notes:**
 
 - `alona-os-firmware` — README only, **no nodes flashed, no repo source**
 - Backend seeds: Living Room ESP32 `data_source`, `device`, `sensors`; target streams `env_living_temp_c`, `env_living_rh`
-- `AlonaIngest.Adapters.Esp32Adapter` stub — Phase B should decode transport payload and call `AlonaIngest.Ingest.ingest/1`
+- `AlonaIngest.Adapters.Esp32Adapter` — gateway JSON → v1 envelope maps (`temperature_c` / `relative_humidity_pct` → env slugs); caller uses `Envelope.parse/1` + `Ingest.ingest/1`
 - No live MQTT subscriber yet
 
 ---

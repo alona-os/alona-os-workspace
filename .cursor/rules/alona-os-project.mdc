@@ -1,0 +1,62 @@
+---
+description: Alona OS purpose, workspace layout, repos, and application architecture for LLM context.
+alwaysApply: true
+---
+
+# Alona OS — project context
+
+## What this is
+
+Personal **off-grid IoT** for the **alona-os system**: long uptime, fault isolation, low maintenance. A **Raspberry Pi** runs the backend; **ESP32** nodes and a **Victron Cerbo GX** publish telemetry over **MQTT**; **PostgreSQL** stores state; **Phoenix LiveView** is the operator UI.
+
+Prioritize resilience and clear boundaries over feature sprawl.
+
+## Workspace layout (`alona-os/`)
+
+| Path | Role |
+|------|------|
+| **`alona-os-core/`** | Elixir **umbrella** — app code, DB, UI (primary dev target) |
+| **`alona-os-infra/`** | **Pi host** bootstrap — Postgres, Mosquitto, env templates, systemd examples |
+| **`alona-os-firmware/`** | ESP32 sensor nodes (separate git repo; often empty in this workspace) |
+| **`ref/alona-os-ui-design*`** | v0/React UI reference for LiveView parity (see `v0-liveview-sync.mdc`) |
+| **`scripts/`** | Repo-level helpers (e.g. v0 diff) |
+| **`.cursor/rules/`** | LLM context and workflows (this file + setup + UI sync) |
+
+## Umbrella apps (`alona-os-core/apps/`)
+
+| App | Responsibility |
+|-----|----------------|
+| **`alona_core`** | Domains, topology (`Entity`, `Domain`), **measurements** (`MeasurementStream` slugs, `Measurements.record_measurement_and_current!/1`), events, tasks, finance |
+| **`alona_ui`** | Phoenix **LiveView** shell, dashboard pages (`energy_live.ex`, etc.), `AlonaCore.Broadcast` for `:refresh_dashboard` |
+| **`alona_ingest`** | MQTT ingestion (**stubs today**): `Mqtt.Client`, `TopicRouter`, `VictronAdapter`, `Esp32Adapter`, `MeasurementWriter` — not started in release yet |
+
+**Data flow (target):** device → MQTT broker → `alona_ingest` → `AlonaCore.Measurements` → `current_values` + history → LiveView via PubSub.
+
+## Measurements convention
+
+- Each metric has a stable **`slug`** on `measurement_streams` (unique index).
+- UI reads via `Measurements.streams_for_slugs/1` and `DashboardPresenter`.
+- Energy page slugs: `energy_battery_soc`, `energy_pv_kw`, `energy_house_load_kw`, `energy_battery_flow_kw`, `energy_generator_status`.
+- Seeds in `alona_core/priv/repo/seeds.exs` provide demo data locally; production values come from ingest.
+
+**Victron / Cerbo:** map Venus MQTT paths → slugs in `AlonaIngest.Adapters.VictronAdapter` (not implemented). Units: often W on the wire, **kW** in DB for power slugs.
+
+## Where to make changes
+
+| Task | Location |
+|------|----------|
+| LiveView, routes, assets | `alona-os-core/apps/alona_ui/` |
+| Schema, contexts, seeds | `alona-os-core/apps/alona_core/` |
+| MQTT adapters, broker client | `alona-os-core/apps/alona_ingest/` |
+| Pi packages, Mosquitto, systemd | **`alona-os-infra/`** — not `alona-os-core` |
+| ESP32 firmware | **`alona-os-firmware/`** |
+| UI design sync from v0 | `ref/` + `.cursor/commands/sync-v0-ui-to-liveview.md` |
+
+Do not copy `ref/.../lib/mock-data.ts` into LiveView without explicit approval (see UI sync rule).
+
+## Related Cursor rules
+
+- **Setup (dev machine + Raspberry Pi):** `alona-os-setup.mdc`
+- **v0 → LiveView:** `v0-liveview-sync.mdc` + command `/sync-v0-ui-to-liveview`
+
+Human READMEs: `alona-os-core/README.md`, `alona-os-infra/README.md`.

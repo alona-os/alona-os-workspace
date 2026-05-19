@@ -1,0 +1,13 @@
+# product repos — separate git clones (see README)
+/alona-os-core/
+/alona-os-infra/
+/alona-os-firmware/
+
+.DS_Store
+
+# redundant v0 export archives (canonical tree: ref/alona-os-ui-design/)
+ref/*.zip
+
+# if you install deps inside the v0 reference tree
+ref/**/node_modules/
+ref/**/.next/

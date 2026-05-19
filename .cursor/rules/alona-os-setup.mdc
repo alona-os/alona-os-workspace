@@ -1,0 +1,108 @@
+---
+description: Dev machine and Raspberry Pi setup for Alona OS (Postgres, MQTT, Elixir, deploy).
+alwaysApply: true
+---
+
+# Alona OS — setup
+
+Two bootstrap paths: **local development** (laptop) vs **edge host** (Raspberry Pi). Do not conflate them.
+
+## Local development (`alona-os-core/`)
+
+**Requires:** Elixir **~> 1.15**, Erlang/OTP, PostgreSQL on `localhost:5432` (or `PG_PORT`).
+
+```bash
+cd alona-os-core
+chmod +x setup.sh    # once
+./setup.sh           # deps, UI assets, mix ecto.setup (create/migrate/seed)
+mix phx.server       # http://localhost:4000
+```
+
+| Variable | Effect |
+|----------|--------|
+| `SKIP_DATABASE=1` | Skip `mix ecto.setup` (deps + assets only) |
+| `PG_PORT` | Probe non-default Postgres port before migrate |
+
+**DB config:** `config/dev.exs` — user from `DATABASE_USERNAME` / `PGUSER` / `USER`, password `DATABASE_PASSWORD` / `PGPASSWORD`, host `DATABASE_HOST`, database `alona_os_core_dev`.
+
+**Useful commands:** `mix ecto.seed`, `mix test`, `mix precommit` (from `AGENTS.md` in core).
+
+**MQTT on laptop:** not required for UI; seeds supply demo measurements. For ingest work, run Mosquitto locally or point `ALONA_MQTT_*` at a broker.
+
+---
+
+## Raspberry Pi / production host (`alona-os-infra/`)
+
+**Step 1 — host services only** (run on the Pi as root):
+
+```bash
+cd alona-os-infra
+chmod +x scripts/setup-pi.sh
+sudo ./scripts/setup-pi.sh
+# optional: sudo ALONA_DB_PASSWORD='secret' ./scripts/setup-pi.sh
+```
+
+Installs and enables: **PostgreSQL** (`alona_os_core_prod`, role `alona`), **Mosquitto** (port **1883**, config from `mosquitto/alona.conf`), **Erlang/Elixir** + build deps. Creates `/etc/alona/alona.env` from template.
+
+| Override | Default |
+|----------|---------|
+| `ALONA_DB_USER` | `alona` |
+| `ALONA_DB_PASSWORD` | `alona` (change on real deploy) |
+| `ALONA_DB_NAME` | `alona_os_core_prod` |
+| `ALONA_SKIP_APT=1` | Re-run DB/MQTT config without apt |
+
+**Verify:**
+
+```bash
+sudo systemctl status postgresql mosquitto
+pg_isready -h localhost
+mosquitto_sub -h localhost -t '$SYS/broker/version' -C 1
+```
+
+**Step 2 — deploy application** (on Pi as deploy user, e.g. `alona`):
+
+```bash
+cd ~/alona-os-core
+set -a && source /etc/alona/alona.env && set +a
+# set SECRET_KEY_BASE via: MIX_ENV=prod mix phx.gen.secret  → edit /etc/alona/alona.env
+
+MIX_ENV=prod mix deps.get
+MIX_ENV=prod mix compile
+MIX_ENV=prod mix ecto.create
+MIX_ENV=prod mix ecto.migrate
+# optional demo: MIX_ENV=prod mix ecto.seed
+```
+
+**Prod env (`/etc/alona/alona.env`):**
+
+- `DATABASE_URL=ecto://alona:PASSWORD@localhost/alona_os_core_prod` (required by `config/runtime.exs`)
+- `SECRET_KEY_BASE`, `PHX_HOST`, `PORT`, `PHX_SERVER=true`
+- `ALONA_MQTT_HOST=localhost`, `ALONA_MQTT_PORT=1883` (for future ingest)
+
+**systemd:** copy `alona-os-infra/systemd/alona-ui.service.example` → `/etc/systemd/system/alona-ui.service`, adjust `WorkingDirectory` and `User`, then `enable --now`.
+
+---
+
+## Security defaults (Pi)
+
+- Mosquitto: **anonymous** on LAN in default `alona.conf` — add TLS/auth before untrusted networks.
+- Postgres: local connections only from bootstrap script.
+- Rotate `ALONA_DB_PASSWORD` and `SECRET_KEY_BASE` for production.
+
+---
+
+## Cerbo GX / Victron (energy)
+
+1. Enable **MQTT** on Cerbo (Venus OS); note **portal ID** in topics `N/<portalId>/...`.
+2. Point Cerbo at the Pi broker (`ALONA_MQTT_HOST`) or bridge brokers.
+3. Implement `AlonaIngest.Adapters.VictronAdapter` + start `alona_ingest` in release (not done yet).
+4. Map Venus paths → measurement **slugs**; convert W → kW where slugs use kW.
+
+---
+
+## LLM checklist
+
+- Pi **OS services** → edit **`alona-os-infra`**, run `setup-pi.sh`.
+- App **code/migrations/UI** → edit **`alona-os-core`**.
+- After schema changes: `mix ecto.migrate` (dev) or `MIX_ENV=prod mix ecto.migrate` (Pi).
+- Do not put Mosquitto/Postgres install logic inside `alona-os-core/setup.sh` (that script is dev-only).

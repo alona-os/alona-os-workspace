@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## What this is
 
-Personal **off-grid IoT** for the **alona-os system**: long uptime, fault isolation, low maintenance. A **Raspberry Pi** runs the backend; **ESP32** nodes and a **Victron Cerbo GX** publish telemetry over **MQTT**; **PostgreSQL** stores state; **Phoenix LiveView** is the operator UI.
+Personal **off-grid IoT** for the **alona-os system**: long uptime, fault isolation, low maintenance. A **Raspberry Pi** runs the backend; **ESP32 sensor nodes** send telemetry over **ESP-NOW** to **gateway ESP32s**, which publish **MQTT** to the Pi; a **Victron Cerbo GX** also publishes over **MQTT**; **PostgreSQL** stores state; **Phoenix LiveView** is the operator UI.
 
 Prioritize resilience and clear boundaries over feature sprawl.
 
@@ -17,7 +17,7 @@ Prioritize resilience and clear boundaries over feature sprawl.
 |------|------|
 | **`alona-os-core/`** | Elixir **umbrella** — app code, DB, UI (primary dev target) |
 | **`alona-os-infra/`** | **Pi host** bootstrap — Postgres, Mosquitto, env templates, systemd examples |
-| **`alona-os-firmware/`** | ESP32 sensor nodes (separate git repo; often empty in this workspace) |
+| **`alona-os-firmware/`** | ESP32 sensor nodes + gateways (ESP-NOW → MQTT; separate git repo; often empty in this workspace) |
 | **`ref/alona-os-ui-design*`** | v0/React UI reference for LiveView parity (see `v0-liveview-sync.mdc`) |
 | **`scripts/`** | Repo-level helpers (e.g. v0 diff) |
 | **`.cursor/rules/`** | LLM context and workflows (this file + setup + UI sync) |
@@ -30,9 +30,11 @@ Prioritize resilience and clear boundaries over feature sprawl.
 |-----|----------------|
 | **`alona_core`** | Domains, topology (`Entity`, `Domain`), **measurements** (`MeasurementStream` slugs, `Measurements.record_measurement_and_current!/1`), events, tasks, finance |
 | **`alona_ui`** | Phoenix **LiveView** shell, dashboard pages (`energy_live.ex`, etc.), `AlonaCore.Broadcast` for `:refresh_dashboard` |
-| **`alona_ingest`** | MQTT ingestion (**stubs today**): `Mqtt.Client`, `TopicRouter`, `VictronAdapter`, `Esp32Adapter`, `MeasurementWriter` — not started in release yet |
+| **`alona_ingest`** | MQTT ingestion: `Mqtt.Client`, `TopicRouter`, `Esp32Adapter` (gateway JSON), `VictronAdapter` (stub); starts with umbrella when MQTT enabled |
 
-**Data flow (target):** device → MQTT broker → `alona_ingest` → `AlonaCore.Measurements` → `current_values` + history → LiveView via PubSub.
+**Data flow (ESP32):** sensor node → **ESP-NOW** → gateway ESP32 → **MQTT** broker → `alona_ingest` → `AlonaCore.Measurements` → `current_values` + history → LiveView via PubSub. Wire contracts: `alona-os-firmware/docs/esp32-espnow-v1.md` (node → gateway), `esp32-mqtt-v1.md` (gateway → Pi).
+
+**Data flow (Cerbo):** device → MQTT broker → `alona_ingest` (Victron adapter, not implemented) → same measurement path.
 
 ## Measurements convention
 

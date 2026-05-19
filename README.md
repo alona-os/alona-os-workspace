@@ -8,7 +8,7 @@ Meta repository for working on the **alona-os system** in one Cursor/IDE workspa
 |-----------|--------|------|
 | **alona-os-core** | [alona-os/alona-os-core](https://github.com/alona-os/alona-os-core) | Elixir umbrella — Phoenix UI, Postgres, ingest |
 | **alona-os-infra** | [alona-os/alona-os-infra](https://github.com/alona-os/alona-os-infra) | Pi host — Postgres, Mosquitto, env, systemd |
-| **alona-os-firmware** | [alona-os/alona-os-firmware](https://github.com/alona-os/alona-os-firmware) | ESP32 sensor node firmware |
+| **alona-os-firmware** | [alona-os/alona-os-firmware](https://github.com/alona-os/alona-os-firmware) | ESP32 sensor nodes + gateways (ESP-NOW → MQTT) |
 | **alona-os-workspace** (this repo) | [alona-os/alona-os-workspace](https://github.com/alona-os/alona-os-workspace) | `.cursor/`, `ref/`, `scripts/` |
 
 ## Clone layout

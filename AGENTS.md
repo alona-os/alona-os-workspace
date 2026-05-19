@@ -23,7 +23,7 @@ Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generate
 
 **Current priority:**
 
-Extend **real ingest coverage** beyond the Living Room MQTT MVP (firmware contract + Victron adapters) without bloating unfinished UI stubs or automations.
+Extend **real ingest coverage** beyond the Living Room MQTT MVP (ESP32 firmware publishing v1 payloads + Victron adapters) without bloating unfinished UI stubs or automations.
 
 **Current constraints:**
 
@@ -31,7 +31,7 @@ Extend **real ingest coverage** beyond the Living Room MQTT MVP (firmware contra
 - Local-first (Postgres + Mosquitto on Pi; no cloud dependency)
 - Envelope ingest path exists in `alona_ingest`; **ESP32 MQTT subscriber** runs under `AlonaIngest.Application` when `alona_ui` starts (unless `ALONA_MQTT_ENABLED=false` or test env disables it)
 - UI structure evolves faster than backend contracts (slug lists in LiveViews)
-- `alona-os-firmware` has **no source code** yet (README only)
+- `alona-os-firmware` has **no firmware source** yet (README + **`docs/esp32-mqtt-v1.md`** wire contract)
 
 ---
 
@@ -57,7 +57,7 @@ Extend **real ingest coverage** beyond the Living Room MQTT MVP (firmware contra
 
 **Purpose:** ESP32 node firmware (separate git repo).
 
-**Status:** Early stage — **no firmware source** in repo; MQTT topic/payload contract **not finalized**.
+**Status:** Early stage — **no firmware source** in repo; **MQTT v1 wire contract** documented in **`docs/esp32-mqtt-v1.md`** (aligned with `Esp32Adapter`).
 
 ### alona-os-infra
 
@@ -354,17 +354,18 @@ Extend **real ingest coverage** beyond the Living Room MQTT MVP (firmware contra
 - Mosquitto config in `alona-os-infra` (port 1883, anonymous on LAN by default)
 - `ALONA_MQTT_*` in `alona-os-infra/env/alona.env.example` (+ `mqtt_runtime.exs` for `:dev`/`:prod`); see `apps/alona_ingest/README.md`
 - `tortoise311` connection supervised when `enabled: true`
-- MQTT wire contract: topic **`alona/esp32/living-room/telemetry`** and JSON shape expected by **`Esp32Adapter`** (manual `mosquitto_pub` example in `apps/alona_ingest/README.md`)
+- MQTT Living Room MVP: topic **`alona/esp32/living-room/telemetry`**; full v1 contract in **`alona-os-firmware/docs/esp32-mqtt-v1.md`** (summary + `mosquitto_pub` in `apps/alona_ingest/README.md`)
 
 ---
 
 ## ESP32
 
-**Status:** **PARTIAL** (live MQTT ingest for living room MVP topic → `Esp32Adapter` → `Ingest.ingest/1`; firmware/repo still absent)
+**Status:** **PARTIAL** (live MQTT ingest for living room MVP topic → `Esp32Adapter` → `Ingest.ingest/1`; firmware source still absent)
 
 **Notes:**
 
-- `alona-os-firmware` — README only, **no nodes flashed, no repo source**
+- **Wire contract v1 locked** — [`alona-os-firmware/docs/esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md)
+- `alona-os-firmware` — README + contract doc, **no nodes flashed, no firmware source yet**
 - Backend seeds: Living Room ESP32 `data_source`, `device`, `sensors`; target streams `env_living_temp_c`, `env_living_rh`
 - `AlonaIngest.Adapters.Esp32Adapter` — gateway JSON → v1 envelope maps (`temperature_c` / `relative_humidity_pct` → env slugs); **`TopicRouter`** invokes normalize + ingest for configured MQTT topics
 
@@ -417,7 +418,7 @@ Payload (v1 envelope map / JSON) → AlonaIngest.Ingest.ingest/1 → same path a
 
 **Planned next step:**
 
-Harden MQTT for production Pi (TLS/auth, backoff/tuning optional), finalize firmware topic parity, then Victron/`VictronAdapter` separately.
+Implement firmware against **`alona-os-firmware/docs/esp32-mqtt-v1.md`**, harden MQTT on the Pi (TLS/auth, backoff/tuning optional), then Victron/`VictronAdapter` separately.
 
 ---
 
@@ -431,7 +432,7 @@ Harden MQTT for production Pi (TLS/auth, backoff/tuning optional), finalize firm
 - Cross-context coupling: Tasks/Finance → Events; all use coarse `broadcast_dashboard`
 - Single monolithic migration — harder to evolve schema in parallel branches
 - Envelope ingest + MQTT `TopicRouter` covered by tests; broker integration harness still deferred
-- Firmware/backend contract undefined — highest integration risk
+- Firmware not shipped — integration risk until nodes publish v1 payloads on the broker
 - `Topology.Domain` naming vs DDD “domain” confuses contributors
 
 ---
@@ -461,9 +462,9 @@ Harden MQTT for production Pi (TLS/auth, backoff/tuning optional), finalize firm
 
 # 10. Current next milestone
 
-Lock the **ESP32↔MQTT wire contract** (topic + payload) with firmware, add broker auth/TLS for non-LAN setups, consider idempotency/out-of-order handling, then start **Cerbo GX / VictronAdapter** ingestion as a parallel track.
+Ship **ESP32 firmware** that publishes **v1** payloads per [`alona-os-firmware/docs/esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md), add broker auth/TLS for non-LAN setups, consider idempotency/out-of-order handling, then start **Cerbo GX / VictronAdapter** ingestion as a parallel track.
 
-Envelope → Point → `ingest_point/1` and the **ESP32 MQTT path** toward `env_living_temp_c` / `env_living_rh` are **done**. Continue to treat Victron-wide mapping plus placeholder pages polish as separate scopes.
+Envelope → Point → `ingest_point/1` and the **ESP32 MQTT path** toward `env_living_temp_c` / `env_living_rh` are **done**; the **wire contract v1** is **documented**. Continue to treat Victron-wide mapping plus placeholder pages polish as separate scopes.
 
 ---
 
@@ -474,7 +475,7 @@ Envelope → Point → `ingest_point/1` and the **ESP32 MQTT path** toward `env_
 | Energy slugs | `energy_battery_soc`, `energy_pv_kw`, `energy_house_load_kw`, `energy_battery_flow_kw`, `energy_generator_status` |
 | Water slugs | `water_tank_percent`, `water_tank_liters`, `water_daily_liters_estimate`, `water_well_status`, `water_pump_status` |
 | Env slugs | `env_*_temp_c`, `env_*_rh` (living, bedroom, bathroom) |
-| ESP32 MQTT (MVP topic) | `alona/esp32/living-room/telemetry` (`apps/alona_ingest/README.md`, `ALONA_MQTT_*` env + `mqtt_runtime.exs`) |
+| ESP32 MQTT (MVP topic + v1 contract) | `alona/esp32/living-room/telemetry`; [`alona-os-firmware/docs/esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md); operator summary `apps/alona_ingest/README.md`; `ALONA_MQTT_*` + `mqtt_runtime.exs` |
 | Default property | `default-site` (`properties.slug`) |
 | Ingest API | `AlonaIngest.Ingest.ingest/1`, `AlonaCore.Measurements.ingest_point/1`, `ingest_points/1` |
 | Envelope v1 | `AlonaIngest.Telemetry.Envelope` |

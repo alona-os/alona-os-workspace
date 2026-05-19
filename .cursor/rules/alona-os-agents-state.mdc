@@ -1,0 +1,38 @@
+---
+description: Keep workspace AGENTS.md accurate after features ship; shared Cursor/ChatGPT implementation state.
+alwaysApply: true
+---
+
+# Alona OS — implementation state (AGENTS.md)
+
+## Source of truth
+
+**`AGENTS.md`** at the workspace root (`alona-os/AGENTS.md`) is the **implementation state** document: what exists vs stubs, integration status, risks, and the **current next milestone**.
+
+- **Cursor** and **ChatGPT** should treat it as shared context alongside `.cursor/rules/alona-os-project.mdc` and `alona-os-setup.mdc`.
+- **`alona-os-core/AGENTS.md`** remains Phoenix/Elixir **coding** guidelines (formatting, LiveView patterns). Do not merge implementation state into that file.
+
+## When to update `AGENTS.md`
+
+After completing work that changes **architectural reality** (not every typo or CSS tweak), update `AGENTS.md` in the **same PR or session**:
+
+| Change | Update sections |
+|--------|------------------|
+| New context API, schema, migration | §4 domain(s), §3 app status if boundary changes |
+| Ingest / MQTT / adapter wired | §3 `alona_ingest`, §6 integration, §7 telemetry, §10 milestone |
+| LiveView reads real data (was placeholder) | §5 UI state — move route from placeholder → data-backed table |
+| Firmware contract frozen | §6 ESP32, §7 wire contract, appendix if needed |
+| Multi-property, bindings, telemetry struct | §4 missing lists, §7–§8 risks, §10 milestone |
+| Milestone completed | §1 phase checkboxes, §10 replace with new immediate milestone |
+
+Also set **`Last updated: YYYY-MM-DD`** at the top.
+
+## How to update
+
+- Be **honest**: STUB / PARTIAL / IMPLEMENTED per area; do not mark Victron/ESP32 implemented until code runs in dev or prod.
+- Keep §10 **one** immediate milestone (one paragraph), not a roadmap.
+- Do not duplicate long setup steps — link to `alona-os-setup.mdc` instead.
+
+## If unsure
+
+Prefer **PARTIAL** over **IMPLEMENTED**. Note coupling or slug assumptions in §8 rather than hiding them.

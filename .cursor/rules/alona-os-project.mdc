@@ -21,6 +21,7 @@ Prioritize resilience and clear boundaries over feature sprawl.
 | **`ref/alona-os-ui-design*`** | v0/React UI reference for LiveView parity (see `v0-liveview-sync.mdc`) |
 | **`scripts/`** | Repo-level helpers (e.g. v0 diff) |
 | **`.cursor/rules/`** | LLM context and workflows (this file + setup + UI sync) |
+| **`AGENTS.md`** (workspace root) | **Implementation state** — what is built vs stub; shared with ChatGPT; update after features ship (`alona-os-agents-state.mdc`) |
 
 ## Umbrella apps (`alona-os-core/apps/`)
 
@@ -58,5 +59,6 @@ Do not copy `ref/.../lib/mock-data.ts` into LiveView without explicit approval (
 
 - **Setup (dev machine + Raspberry Pi):** `alona-os-setup.mdc`
 - **v0 → LiveView:** `v0-liveview-sync.mdc` + command `/sync-v0-ui-to-liveview`
+- **Implementation state (update after features):** `alona-os-agents-state.mdc` → workspace `AGENTS.md`
 
 Human READMEs: `alona-os-core/README.md`, `alona-os-infra/README.md`.

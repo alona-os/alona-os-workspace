@@ -17,19 +17,19 @@ Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generate
 - [x] Architecture exploration
 - [x] UI prototyping (v0 → LiveView parity in progress)
 - [x] Telemetry foundation (schema + seeds + read path)
-- [ ] Real device integration
+- [x] Real device integration (Living Room ESP32 MQTT → ingest; Victron/other devices not yet)
 - [ ] Automation engine
 - [ ] Production deployment (host bootstrap exists; app ingest not wired)
 
 **Current priority:**
 
-Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` → `Measurements.ingest_point/1`) for the Living Room ESP32 node (`env_living_temp_c`, `env_living_rh`) before expanding automations or placeholder pages.
+Extend **real ingest coverage** beyond the Living Room MQTT MVP (firmware contract + Victron adapters) without bloating unfinished UI stubs or automations.
 
 **Current constraints:**
 
 - Single **default** property in seeds (`default-site`); schema supports multi-property via `property_id` scoping
 - Local-first (Postgres + Mosquitto on Pi; no cloud dependency)
-- Envelope ingest path exists in `alona_ingest`; MQTT broker client **not started** in OTP release path
+- Envelope ingest path exists in `alona_ingest`; **ESP32 MQTT subscriber** runs under `AlonaIngest.Application` when `alona_ui` starts (unless `ALONA_MQTT_ENABLED=false` or test env disables it)
 - UI structure evolves faster than backend contracts (slug lists in LiveViews)
 - `alona-os-firmware` has **no source code** yet (README only)
 
@@ -48,8 +48,8 @@ Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` →
 | App | Role |
 |-----|------|
 | `alona_core` | Ecto schemas, contexts, Repo, PubSub |
-| `alona_ingest` | Telemetry envelope ingest + MQTT/adapters (transport stubs); depends on `alona_core` only |
-| `alona_ui` | Phoenix endpoint + LiveViews; depends on `alona_core` only (not ingest) |
+| `alona_ingest` | Telemetry envelope ingest + MQTT (Living Room ESP32 MVP); depends on `alona_core`; **not** depended on by `alona_core` |
+| `alona_ui` | Phoenix endpoint + LiveViews; depends on `alona_core` and `alona_ingest` (OTP starts ingest with the umbrella) |
 
 **Key paths:** `apps/alona_core/`, `apps/alona_ingest/`, `apps/alona_ui/`, `config/`, migrations under `apps/alona_core/priv/repo/migrations/` (initial MVP + `add_properties_scope`).
 
@@ -98,7 +98,7 @@ Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` →
 - LiveView
 - Direct UI assumptions
 
-**Status:** **PARTIAL** — transport-agnostic envelope ingest only; **not live MQTT ingestion** (no broker subscriber, no device wire path in production yet).
+**Status:** **PARTIAL** — envelope ingest and **Living Room ESP32 MQTT ingest** wired; Victron/other transports still stubs.
 
 **Implemented:**
 
@@ -106,22 +106,28 @@ Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` →
 - `AlonaIngest.Ingest` — `parse/1`, `ingest/1` → `Measurements.ingest_point/1` (transport-agnostic)
 - `AlonaIngest` — delegates to `Ingest`
 - Tests: envelope unit + ingest integration (`apps/alona_ingest/test/`, fixtures, no broker)
+- Tests: MQTT `TopicRouter` + payload→DB route tests (no MQTT broker harness)
 
-- `AlonaIngest.Adapters.Esp32Adapter` — `normalize/1` → v1 envelope maps from gateway JSON (living room MVP reading → slug map); no MQTT/topic routing yet
+- `AlonaIngest.Adapters.Esp32Adapter` — `normalize/1` → v1 envelope maps from gateway JSON (living room MVP reading → slug map)
 
-**Still stub (Phase B — MQTT / device adapters):**
+**MQTT MVP (living room telemetry topic):**
 
-- `AlonaIngest.Mqtt.Client` — `connect/0` → `{:error, :not_implemented}`
-- `AlonaIngest.Mqtt.TopicRouter` — `route/2` → `{:ok, :ignored}`
+- `tortoise311` supervised `Tortoise311.Connection` from `AlonaIngest.Application` when `enabled: true`
+- `AlonaIngest.Mqtt.Handler` — `handle_message/3`; joins topic levels → `TopicRouter.route/2`
+- `AlonaIngest.Mqtt.Client` — `child_spec/0`, `connection_opts/0`; config under `Application` (`config/config.exs` + `config/mqtt_runtime.exs` when `Mix.env()` is `dev` or `prod`)
+- `AlonaIngest.Mqtt.TopicRouter` — configured literal topic(s); `Esp32Adapter.normalize/1` → `Enum.map` `Ingest.ingest/1`; `{:partial_ingest_failed, failures}` when any envelope fails
+
+**Still stub / follow-up:**
+
 - `AlonaIngest.Adapters.VictronAdapter` — `normalize/1` → `{:error, :not_implemented}`
 - `AlonaIngest.Workers.MeasurementWriter` — `enqueue/1` → `:ok`
 - `AlonaIngest.Normalizers.MeasurementNormalizer` — `normalize/1` delegates to `Ingest.parse/1`; prefer `Ingest.ingest/1` for persistence
 
 **Notes:**
 
-- `AlonaIngest.Application` supervisor has **zero children** (no MQTT process yet)
-- `alona_ui` does not depend on or start `alona_ingest`
-- No `mix release` profile in repo yet; prod runs UI + core via `mix phx.server` / systemd example
+- MQTT disabled in test (`enabled: false`); no broker fixtures in CI
+- No binding registry yet (topics + adapter path are MVP literals)
+- No `mix release` profile in repo yet; prod runs UI + ingest via `mix phx.server` / systemd example
 
 ---
 
@@ -341,27 +347,26 @@ Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` →
 
 ## MQTT
 
-**Status:** **NOT IMPLEMENTED** (broker client / subscriber in application code)
+**Status:** **PARTIAL** — **subscriber implemented** for ESP32 Living Room MVP; no TLS/auth story; no Victron wiring.
 
 **Notes:**
 
 - Mosquitto config in `alona-os-infra` (port 1883, anonymous on LAN by default)
-- `ALONA_MQTT_HOST` / `ALONA_MQTT_PORT` in `alona-os-infra/env/alona.env.example` for future ingest
-- No MQTT client dependency or supervised subscriber in `alona_ingest` yet
-- **Not live MQTT ingestion:** Mosquitto on the Pi is host-only for now; the app has no subscriber. Envelope ingest (`AlonaIngest.Ingest.ingest/1`) works without a broker for IEx, tests, and future adapters (see `AlonaIngest.Telemetry.Envelope` moduledoc).
+- `ALONA_MQTT_*` in `alona-os-infra/env/alona.env.example` (+ `mqtt_runtime.exs` for `:dev`/`:prod`); see `apps/alona_ingest/README.md`
+- `tortoise311` connection supervised when `enabled: true`
+- MQTT wire contract: topic **`alona/esp32/living-room/telemetry`** and JSON shape expected by **`Esp32Adapter`** (manual `mosquitto_pub` example in `apps/alona_ingest/README.md`)
 
 ---
 
 ## ESP32
 
-**Status:** **PARTIAL** (adapter normalize only; no live MQTT wire path)
+**Status:** **PARTIAL** (live MQTT ingest for living room MVP topic → `Esp32Adapter` → `Ingest.ingest/1`; firmware/repo still absent)
 
 **Notes:**
 
 - `alona-os-firmware` — README only, **no nodes flashed, no repo source**
 - Backend seeds: Living Room ESP32 `data_source`, `device`, `sensors`; target streams `env_living_temp_c`, `env_living_rh`
-- `AlonaIngest.Adapters.Esp32Adapter` — gateway JSON → v1 envelope maps (`temperature_c` / `relative_humidity_pct` → env slugs); caller uses `Envelope.parse/1` + `Ingest.ingest/1`
-- No live MQTT subscriber yet
+- `AlonaIngest.Adapters.Esp32Adapter` — gateway JSON → v1 envelope maps (`temperature_c` / `relative_humidity_pct` → env slugs); **`TopicRouter`** invokes normalize + ingest for configured MQTT topics
 
 ---
 
@@ -392,39 +397,40 @@ Adapters and scripts build `%Point{}` and call `Measurements.ingest_point/1` (pr
 **Current ingest flow (actual):**
 
 ```text
-Payload (v1 envelope map / JSON) → AlonaIngest.Telemetry.Envelope.parse/1
+MQTT JSON (ESP32 gateway) → AlonaIngest.Mqtt.Handler / TopicRouter
+  → Esp32Adapter.normalize → v1 envelope maps
+  → Envelope.parse (via AlonaIngest.Ingest.ingest)
   → AlonaCore.Telemetry.Point
-  → AlonaIngest.Ingest.ingest/1 → Measurements.ingest_point/1
+  → Measurements.ingest_point/1
   → measurements + current_values → Broadcast → LiveViews
 
-Target (next transport layer):
-  device → Mosquitto → AlonaIngest.Mqtt.Client → TopicRouter → adapter
-  → AlonaIngest.Ingest.ingest/1 (same envelope path)
+Also (transport-agnostic scripts / HTTP later):
+Payload (v1 envelope map / JSON) → AlonaIngest.Ingest.ingest/1 → same path as above
 ```
 
 **Current risks:**
 
 - Hardcoded slugs in UI and seeds
-- No binding registry (external key → stream)
-- v1 envelope is internal/dev-oriented; ESP32 MQTT topic layout still TBD
+- No binding registry (external key → stream); ESP32 MQTT uses **configured literal topics** matching `Esp32Adapter` only
+- v1 envelope is internal/dev-oriented; wildcard topic orchestration deferred
 - Synchronous DB write + global dashboard broadcast per point
 
 **Planned next step:**
 
-MQTT subscriber + topic routing → `Ingest.ingest/1` for `env_living_temp_c` / `env_living_rh`; verify LiveView refresh on local Mosquitto (no binding table required yet).
+Harden MQTT for production Pi (TLS/auth, backoff/tuning optional), finalize firmware topic parity, then Victron/`VictronAdapter` separately.
 
 ---
 
 # 8. Known architectural risks
 
 - Multi-property operator UX not built (schema scoped; UI still assumes `default-site`)
-- `alona_ingest` not supervised or in release — production is UI-only for app OTP
+- `alona_ingest` runs inside umbrella when `mix phx.server` boots but **OTP release packaging** (`mix release`) is still not defined — production systemd today assumes `mix` task startup
 - UI ahead of contracts (slugs, no `alona_contracts` package)
 - `measurements` table unbounded — no retention/partitioning strategy
 - Stringly-typed statuses/types (`entity_type`, `event_type`, `severity`) — drift risk
 - Cross-context coupling: Tasks/Finance → Events; all use coarse `broadcast_dashboard`
 - Single monolithic migration — harder to evolve schema in parallel branches
-- Envelope ingest covered by `alona_ingest` tests; MQTT transport tests still missing
+- Envelope ingest + MQTT `TopicRouter` covered by tests; broker integration harness still deferred
 - Firmware/backend contract undefined — highest integration risk
 - `Topology.Domain` naming vs DDD “domain” confuses contributors
 
@@ -455,14 +461,9 @@ MQTT subscriber + topic routing → `Ingest.ingest/1` for `env_living_temp_c` / 
 
 # 10. Current next milestone
 
-**MQTT transport for Living Room ESP32 (two streams) on dev:**
+Lock the **ESP32↔MQTT wire contract** (topic + payload) with firmware, add broker auth/TLS for non-LAN setups, consider idempotency/out-of-order handling, then start **Cerbo GX / VictronAdapter** ingestion as a parallel track.
 
-1. Add MQTT client dep + supervised subscriber under `AlonaIngest.Application`.
-2. `TopicRouter` + `Esp32Adapter` decode topic/payload → v1 envelope (or call `Ingest.ingest/1` directly).
-3. Route topics to `env_living_temp_c` / `env_living_rh` via config (no binding table required yet).
-4. Confirm LiveView updates via existing PubSub + slug reads on local Mosquitto.
-
-Envelope → Point → `ingest_point/1` is **done** (no broker). Do **not** treat “finish all placeholder pages” or “full Victron mapping” as this milestone.
+Envelope → Point → `ingest_point/1` and the **ESP32 MQTT path** toward `env_living_temp_c` / `env_living_rh` are **done**. Continue to treat Victron-wide mapping plus placeholder pages polish as separate scopes.
 
 ---
 
@@ -473,6 +474,7 @@ Envelope → Point → `ingest_point/1` is **done** (no broker). Do **not** trea
 | Energy slugs | `energy_battery_soc`, `energy_pv_kw`, `energy_house_load_kw`, `energy_battery_flow_kw`, `energy_generator_status` |
 | Water slugs | `water_tank_percent`, `water_tank_liters`, `water_daily_liters_estimate`, `water_well_status`, `water_pump_status` |
 | Env slugs | `env_*_temp_c`, `env_*_rh` (living, bedroom, bathroom) |
+| ESP32 MQTT (MVP topic) | `alona/esp32/living-room/telemetry` (`apps/alona_ingest/README.md`, `ALONA_MQTT_*` env + `mqtt_runtime.exs`) |
 | Default property | `default-site` (`properties.slug`) |
 | Ingest API | `AlonaIngest.Ingest.ingest/1`, `AlonaCore.Measurements.ingest_point/1`, `ingest_points/1` |
 | Envelope v1 | `AlonaIngest.Telemetry.Envelope` |

@@ -1,0 +1,24 @@
+{
+  "folders": [
+    {
+      "name": "workspace",
+      "path": "."
+    },
+    {
+      "name": "core",
+      "path": "alona-os-core"
+    },
+    {
+      "name": "infra",
+      "path": "alona-os-infra"
+    },
+    {
+      "name": "firmware",
+      "path": "alona-os-firmware"
+    }
+  ],
+  "settings": {
+    "git.autoRepositoryDetection": true,
+    "git.repositoryScanMaxDepth": 2
+  }
+}

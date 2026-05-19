@@ -23,12 +23,17 @@ git clone git@github.com:alona-os/alona-os-infra.git
 git clone git@github.com:alona-os/alona-os-firmware.git
 ```
 
-Open the **`alona-os`** folder (workspace root) in Cursor so `.cursor/rules` apply across core, infra, and firmware.
+Open in Cursor so `.cursor/rules` apply across core, infra, and firmware:
+
+- **Recommended:** **File → Open Workspace from File…** → [`alona-os.code-workspace`](alona-os.code-workspace)  
+  Source Control shows each git repo (`workspace`, `core`, `infra`, `firmware`) in the repo picker.
+- **Alternative:** open the **`alona-os`** folder only — you will see the meta repo in Source Control; product repos are separate clones (see [`.gitignore`](.gitignore)).
 
 ## What’s in this repo
 
 | Path | Purpose |
 |------|---------|
+| **`alona-os.code-workspace`** | Multi-root workspace — all repos in one Cursor window + SCM |
 | **`.cursor/rules/`** | Project context, setup, v0 → LiveView sync |
 | **`.cursor/commands/`** | Agent workflows (e.g. `/sync-v0-ui-to-liveview`) |
 | **`ref/`** | v0 UI design export, logos, reference PDF |

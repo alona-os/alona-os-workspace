@@ -21,8 +21,8 @@ Prioritize resilience and clear boundaries over feature sprawl.
 | **`ref/alona-os-ui-design*`** | v0/React UI reference for LiveView parity (see `v0-liveview-sync.mdc`) |
 | **`scripts/`** | Repo-level helpers (e.g. v0 diff) |
 | **`.cursor/rules/`** | LLM context and workflows (this file + setup + UI sync) |
-| **`AGENTS.md`** (workspace root) | **Implementation state** — what is built vs stub; shared with ChatGPT; update after features ship (`alona-os-agents-state.mdc`) |
-| **`CHATGPT_RULES.md`** (workspace root) | How ChatGPT formats **single** copy-paste Cursor prompts (no fragments after the block) |
+| **`AGENTS.md`** (workspace root) | **Implementation state** — what is built vs stub; update after features ship (`alona-os-agents-state.mdc`). Also uploaded to ChatGPT web for planning. |
+| **`scripts/chatgpt/CHATGPT_RULES.md`** | **ChatGPT web only** — synced into `memory/chatgpt/` upload as `CHATGPT_RULES.md`; Cursor ignores it. |
 
 ## Umbrella apps (`alona-os-core/apps/`)
 

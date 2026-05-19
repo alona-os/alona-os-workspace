@@ -4,7 +4,7 @@ Last updated: **2026-05-19**
 
 Shared context for Cursor, ChatGPT, and humans. Describes what is **actually implemented**, not the long-term vision. Update this file when a feature crosses from stub → real (see `.cursor/rules/alona-os-agents-state.mdc`).
 
-For **how ChatGPT should format Cursor prompts**, see [`CHATGPT_RULES.md`](CHATGPT_RULES.md).
+Shared with **ChatGPT web** via the memory bundle (`memory/chatgpt/alona-iot/`); **Cursor** reads this file in the repo directly. ChatGPT-only prompt rules live in the bundle as `CHATGPT_RULES.md` (source: `scripts/chatgpt/CHATGPT_RULES.md`) — not at repo root.
 
 Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generated Phoenix defaults).
 
@@ -23,11 +23,11 @@ Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generate
 
 **Current priority:**
 
-Solidify **telemetry contracts** and ship **one end-to-end ingest path** (MQTT → `alona_ingest` → `Measurements.record_measurement_and_current!/1`) before expanding automations or placeholder pages.
+Ship **one end-to-end MQTT ingest path** (local Mosquitto → `alona_ingest` → `Measurements.ingest_point/1`) for the Living Room ESP32 node (`env_living_temp_c`, `env_living_rh`) before expanding automations or placeholder pages.
 
 **Current constraints:**
 
-- Single-property only (no `site` / `property_id` in schema)
+- Single **default** property in seeds (`default-site`); schema supports multi-property via `property_id` scoping
 - Local-first (Postgres + Mosquitto on Pi; no cloud dependency)
 - Ingest is stubbed and **not started** in OTP release path
 - UI structure evolves faster than backend contracts (slug lists in LiveViews)
@@ -51,7 +51,7 @@ Solidify **telemetry contracts** and ship **one end-to-end ingest path** (MQTT �
 | `alona_ingest` | MQTT/adapters (stubs); depends on `alona_core` only |
 | `alona_ui` | Phoenix endpoint + LiveViews; depends on `alona_core` only (not ingest) |
 
-**Key paths:** `apps/alona_core/`, `apps/alona_ingest/`, `apps/alona_ui/`, `config/`, single migration `apps/alona_core/priv/repo/migrations/20260516183000_initial_mvp.exs`.
+**Key paths:** `apps/alona_core/`, `apps/alona_ingest/`, `apps/alona_ui/`, `config/`, migrations under `apps/alona_core/priv/repo/migrations/` (initial MVP + `add_properties_scope`).
 
 ### alona-os-firmware
 
@@ -143,14 +143,15 @@ Solidify **telemetry contracts** and ship **one end-to-end ingest path** (MQTT �
 
 **Implemented:**
 
-- Schemas: `Domain`, `Location`, `Entity`, `EntityLink`
-- Migration: hierarchical `locations`, `entities` with `primary_domain_id`, `location_id`, `parent_entity_id`
-- Context: `AlonaCore.Topology` — list/get helpers only (no create/update APIs)
-- Seeds: domains (energy, water, environment, resources), house + rooms + well, entities (battery, PV, tanks, climate “sensors”, etc.)
+- Schemas: `Property`, `Domain`, `Location`, `Entity`, `EntityLink`
+- Migration: hierarchical `locations`, `entities` with `property_id`, `primary_domain_id`, `location_id`, `parent_entity_id`
+- Scoped uniqueness: `entities(property_id, name)`
+- Context: `AlonaCore.Topology` — list/get helpers, `get_property_by_slug/1`, `default_property/0`
+- Seeds: `default-site` property, domains, house + rooms + well, entities (battery, PV, tanks, climate “sensors”, etc.)
 
 **Missing:**
 
-- `site` / `property` root scope (global unique `entities.name`, global unique `measurement_streams.slug`)
+- Multi-property UI / operator property switcher
 - Capability / endpoint model
 - Context CRUD for entities/locations/links
 - `EntityLink` unused in seeds/UI
@@ -168,22 +169,22 @@ Solidify **telemetry contracts** and ship **one end-to-end ingest path** (MQTT �
 
 **Implemented:**
 
-- Schemas: `DataSource`, `MetricDefinition`, `Device`, `Sensor`, `MeasurementStream`, `Measurement`, `CurrentValue`
-- Context: `Measurements.streams_for_slugs/1`, `list_metric_definitions/0`, `record_measurement_and_current!/1` (transaction: insert measurement, upsert current, broadcast dashboard)
-- Seeds: metric definitions, streams with stable **slugs**, demo `measurements` + `current_values`
-- UI reads via slugs (e.g. `energy_battery_soc`, `water_tank_percent`, `env_living_temp_c`)
+- Schemas: `DataSource`, `MetricDefinition`, `Device`, `Sensor`, `MeasurementStream`, `Measurement`, `CurrentValue` (all scoped by `property_id` where applicable)
+- Canonical struct: `AlonaCore.Telemetry.Point` — validated normalized reading before persistence
+- Context: `Measurements.streams_for_slugs/2` (optional `property_slug`, defaults to `default-site`), `ingest_point/1`, `ingest_points/1`, `record_measurement_and_current!/1` (shared persist path; transaction + dashboard broadcast)
+- Seeds: metric definitions, streams with stable **slugs**, demo `measurements` + `current_values`, ESP32 `living-room-esp32` data source + device + sensors on Living Room; `env_living_temp_c` / `env_living_rh` linked to ESP32 source
+- Tests: `measurements_ingest_test.exs` (ingest, property isolation, batch partial results)
+- UI reads via slugs unchanged (e.g. `energy_battery_soc`, `env_living_temp_c`)
 
 **Missing:**
 
-- Normalized `%TelemetryPoint{}` (or equivalent) ingest contract
 - Binding registry: external topic/key → `stream_id` / slug
 - Retention, rollups, partitioning
-- `Device` / `Sensor` / `DataSource` not wired in seeds (only a seed `DataSource` row; streams mostly omit `data_source_id`)
-- Ingest does not call `record_measurement_and_current!/1` yet
+- `alona_ingest` calling `ingest_point/1` (MQTT not wired)
 
 **Current assumptions:**
 
-- Each logical metric has a globally unique **`measurement_streams.slug`**
+- Each logical metric has a unique **`measurement_streams.slug` per property** (`property_id` + `slug`)
 - UI and seeds hardcode slug lists; power slugs use **kW** in DB (Victron often W on wire — conversion belongs in ingest)
 - Dashboard hot path = `current_values`; history = append-only `measurements`
 
@@ -344,13 +345,14 @@ Solidify **telemetry contracts** and ship **one end-to-end ingest path** (MQTT �
 
 ## ESP32
 
-**Status:** **NOT IMPLEMENTED**
+**Status:** **NOT IMPLEMENTED** (wire path)
 
 **Notes:**
 
 - `alona-os-firmware` — README only, **no nodes flashed, no repo source**
-- Backend: `AlonaIngest.Adapters.Esp32Adapter` stub only
-- Planned nodes (room, water tank) are **not** in codebase — do not document as deployed
+- Backend seeds: Living Room ESP32 `data_source`, `device`, `sensors`; target streams `env_living_temp_c`, `env_living_rh`
+- `AlonaIngest.Adapters.Esp32Adapter` stub only — should build `%AlonaCore.Telemetry.Point{}` and call `Measurements.ingest_point/1` when MQTT lands
+- No live MQTT ingest yet
 
 ---
 
@@ -374,20 +376,23 @@ Solidify **telemetry contracts** and ship **one end-to-end ingest path** (MQTT �
 
 # 7. Telemetry architecture status
 
-**Current canonical telemetry struct:** **NOT IMPLEMENTED**
+**Current canonical telemetry struct:** **IMPLEMENTED** — `AlonaCore.Telemetry.Point`
 
-Use a single internal struct (e.g. `%AlonaTelemetry.Point{}`) from all adapters into `Measurements.ingest_point/1` — **planned**, not in repo.
+Adapters and scripts build `%Point{}` and call `Measurements.ingest_point/1` (property + stream resolution, value-type check, persist, broadcast).
 
 **Current ingest flow (actual):**
 
 ```text
-(nothing running)
+Manual / IEx / future adapter
+  → AlonaCore.Telemetry.Point
+  → Measurements.ingest_point/1
+  → measurements + current_values → Broadcast → LiveViews
 
-Target:
+Target (next):
   device → Mosquitto → AlonaIngest.Mqtt.Client
-         → TopicRouter → VictronAdapter | Esp32Adapter
-         → MeasurementWriter → AlonaCore.Measurements.record_measurement_and_current!/1
-         → measurements + current_values → Broadcast → LiveViews
+         → TopicRouter → Esp32Adapter
+         → AlonaCore.Telemetry.Point
+         → Measurements.ingest_point/1
 ```
 
 **Current risks:**
@@ -399,20 +404,20 @@ Target:
 
 **Planned next step:**
 
-Define **MQTT topic + JSON envelope v1** and **one binding** (e.g. one temp/humidity stream); implement `alona_ingest` supervision + adapter → `record_measurement_and_current!/1`; verify on local Mosquitto without UI slug changes if bindings are DB-driven.
+Define **MQTT topic + JSON envelope v1**; implement `alona_ingest` MQTT client + `Esp32Adapter` → `ingest_point/1` for `env_living_temp_c` / `env_living_rh`; verify LiveView refresh on local Mosquitto (bindings table optional — slug on `%Point{}` is enough for first node).
 
 ---
 
 # 8. Known architectural risks
 
-- Global unique `measurement_streams.slug` and `entities.name` — blocks multi-property without migration
+- Multi-property operator UX not built (schema scoped; UI still assumes `default-site`)
 - `alona_ingest` not supervised or in release — production is UI-only for app OTP
 - UI ahead of contracts (slugs, no `alona_contracts` package)
 - `measurements` table unbounded — no retention/partitioning strategy
 - Stringly-typed statuses/types (`entity_type`, `event_type`, `severity`) — drift risk
 - Cross-context coupling: Tasks/Finance → Events; all use coarse `broadcast_dashboard`
 - Single monolithic migration — harder to evolve schema in parallel branches
-- Minimal tests (placeholder `ExUnit` only) — ingest mapping regressions unguarded
+- Ingest mapping covered by core tests; MQTT adapter tests still missing
 - Firmware/backend contract undefined — highest integration risk
 - `Topology.Domain` naming vs DDD “domain” confuses contributors
 
@@ -443,12 +448,12 @@ Define **MQTT topic + JSON envelope v1** and **one binding** (e.g. one temp/humi
 
 # 10. Current next milestone
 
-**Implement normalized telemetry ingestion for one logical metric end-to-end on dev:**
+**MQTT ingest for Living Room ESP32 (two streams) on dev:**
 
-1. Add internal point struct + `Measurements` ingest API (wrap `record_measurement_and_current!/1`).
-2. Start `alona_ingest` supervisor with MQTT subscriber (local Mosquitto).
-3. Map **one** topic/payload → **one** existing seed slug via config or first `integration_bindings` table row.
-4. Confirm LiveView updates via PubSub without new slug literals in UI.
+1. Start `alona_ingest` supervisor with MQTT subscriber (local Mosquitto).
+2. Implement `Esp32Adapter.normalize/1` → `%AlonaCore.Telemetry.Point{}` for temperature/humidity.
+3. Route topics to `env_living_temp_c` / `env_living_rh` via config (no binding table required yet).
+4. Confirm LiveView updates via existing PubSub + slug reads.
 
 Do **not** treat “finish all placeholder pages” or “full Victron mapping” as this milestone.
 
@@ -461,6 +466,9 @@ Do **not** treat “finish all placeholder pages” or “full Victron mapping�
 | Energy slugs | `energy_battery_soc`, `energy_pv_kw`, `energy_house_load_kw`, `energy_battery_flow_kw`, `energy_generator_status` |
 | Water slugs | `water_tank_percent`, `water_tank_liters`, `water_daily_liters_estimate`, `water_well_status`, `water_pump_status` |
 | Env slugs | `env_*_temp_c`, `env_*_rh` (living, bedroom, bathroom) |
-| Write API | `AlonaCore.Measurements.record_measurement_and_current!/1` |
+| Default property | `default-site` (`properties.slug`) |
+| Ingest API | `AlonaCore.Measurements.ingest_point/1`, `ingest_points/1` |
+| Telemetry struct | `AlonaCore.Telemetry.Point` |
+| Low-level write | `AlonaCore.Measurements.record_measurement_and_current!/1` |
 | Dev setup | `alona-os-core/setup.sh`, `mix phx.server` — see `.cursor/rules/alona-os-setup.mdc` |
 | Pi setup | `alona-os-infra/scripts/setup-pi.sh` |

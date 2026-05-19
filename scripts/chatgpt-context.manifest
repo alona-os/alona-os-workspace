@@ -1,0 +1,20 @@
+# Docs-only bundle for ChatGPT project "alona-iot" (default).
+# Do not add .ex, .exs, config, migrations, seeds, tests, or shell scripts here.
+#
+# Lines starting with # are ignored.
+
+# implementation state (source of truth for ChatGPT)
+AGENTS.md
+
+# cursor rules (project structure, setup, UI sync)
+.cursor/rules/alona-os-project.mdc
+.cursor/rules/alona-os-setup.mdc
+.cursor/rules/alona-os-agents-state.mdc
+.cursor/rules/v0-liveview-sync.mdc
+.cursor/rules/chatgpt-context-sync.mdc
+
+# high-level readmes only (no application source)
+alona-os-core/README.md
+alona-os-infra/README.md
+alona-os-firmware/README.md
+scripts/README-chatgpt-sync.md

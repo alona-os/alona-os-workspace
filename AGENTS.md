@@ -4,6 +4,8 @@ Last updated: **2026-05-19**
 
 Shared context for Cursor, ChatGPT, and humans. Describes what is **actually implemented**, not the long-term vision. Update this file when a feature crosses from stub → real (see `.cursor/rules/alona-os-agents-state.mdc`).
 
+For **how ChatGPT should format Cursor prompts**, see [`CHATGPT_RULES.md`](CHATGPT_RULES.md).
+
 Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generated Phoenix defaults).
 
 ---

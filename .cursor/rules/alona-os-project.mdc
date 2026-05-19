@@ -22,6 +22,7 @@ Prioritize resilience and clear boundaries over feature sprawl.
 | **`scripts/`** | Repo-level helpers (e.g. v0 diff) |
 | **`.cursor/rules/`** | LLM context and workflows (this file + setup + UI sync) |
 | **`AGENTS.md`** (workspace root) | **Implementation state** — what is built vs stub; shared with ChatGPT; update after features ship (`alona-os-agents-state.mdc`) |
+| **`CHATGPT_RULES.md`** (workspace root) | How ChatGPT formats **single** copy-paste Cursor prompts (no fragments after the block) |
 
 ## Umbrella apps (`alona-os-core/apps/`)
 

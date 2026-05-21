@@ -17,13 +17,13 @@ Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generate
 - [x] Architecture exploration
 - [x] UI prototyping (v0 → LiveView parity in progress)
 - [x] Telemetry foundation (schema + seeds + read path)
-- [x] Real device integration (Living Room ESP32 gateway MQTT → ingest; ESP-NOW node firmware not yet)
+- [x] Real device integration (Living Room ESP32 gateway MQTT → ingest; ESP-IDF ESP-NOW gateway + bench fake node in **alona-os-firmware**; production sensor node firmware not yet)
 - [ ] Automation engine
 - [ ] Production deployment (host bootstrap exists; app ingest not wired)
 
 **Current priority:**
 
-Extend **real ingest coverage** beyond the Living Room gateway MQTT MVP (ESP-NOW node + gateway firmware, then Victron adapters) without bloating unfinished UI stubs or automations.
+Extend **real ingest coverage** beyond the Living Room MVP (production ESP-NOW sensor nodes, then Victron adapters) without bloating unfinished UI stubs or automations.
 
 **Current constraints:**
 
@@ -31,7 +31,7 @@ Extend **real ingest coverage** beyond the Living Room gateway MQTT MVP (ESP-NOW
 - Local-first (Postgres + Mosquitto on Pi; no cloud dependency)
 - Envelope ingest path exists in `alona_ingest`; **ESP32 gateway MQTT subscriber** runs under `AlonaIngest.Application` when `alona_ui` starts (unless `ALONA_MQTT_ENABLED=false` or test env disables it). **Sensor nodes use ESP-NOW to gateways only** — not MQTT to the Pi (see §6–§7).
 - UI structure evolves faster than backend contracts (slug lists in LiveViews)
-- `alona-os-firmware` has **no firmware source** yet (README + **`docs/esp32-espnow-v1.md`** + **`docs/esp32-mqtt-v1.md`** wire contracts)
+- `alona-os-firmware` ships **ESP-IDF gateway** + **`examples/espnow_fake_node`** + **`docs/gateway-setup.md`**; contracts remain **`docs/esp32-espnow-v1.md`** + **`docs/esp32-mqtt-v1.md`**
 
 ---
 
@@ -57,7 +57,7 @@ Extend **real ingest coverage** beyond the Living Room gateway MQTT MVP (ESP-NOW
 
 **Purpose:** ESP32 **sensor node** and **gateway** firmware (separate git repo).
 
-**Status:** Early stage — **no firmware source** in repo; **ESP-NOW v1** (node → gateway) and **MQTT v1** (gateway → Pi) documented in **`docs/esp32-espnow-v1.md`** and **`docs/esp32-mqtt-v1.md`** (MQTT aligned with `Esp32Adapter`).
+**Status:** **PARTIAL** — **ESP-IDF** gateway (`gateway/`) + shared **`components/alona_protocol`** + bench **`examples/espnow_fake_node`**; **ESP-NOW v1** and **MQTT v1** documented in **`docs/esp32-espnow-v1.md`** and **`docs/esp32-mqtt-v1.md`** (MQTT aligned with `Esp32Adapter`). Operator setup: **`docs/gateway-setup.md`**. Production sensor nodes (sensors, pairing, power) still future.
 
 ### alona-os-infra
 
@@ -361,7 +361,7 @@ Extend **real ingest coverage** beyond the Living Room gateway MQTT MVP (ESP-NOW
 
 ## ESP32
 
-**Status:** **PARTIAL** (live **gateway → MQTT** ingest for living room MVP → `Esp32Adapter` → `Ingest.ingest/1`; **ESP-NOW node firmware** not shipped)
+**Status:** **PARTIAL** (live **gateway → MQTT** ingest for living room MVP → `Esp32Adapter` → `Ingest.ingest/1`; **ESP-IDF ESP-NOW gateway** + bench fake node in **`alona-os-firmware`**; production **ESP-NOW sensor node** firmware not shipped)
 
 **Architecture (target):**
 
@@ -375,9 +375,9 @@ Sensor node(s)  --ESP-NOW-->  Gateway ESP32  --MQTT JSON v1-->  Mosquitto  -->  
 
 **Notes:**
 
-- **ESP-NOW v1 (node → gateway):** [`alona-os-firmware/docs/esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) — **documented**, firmware not implemented
+- **ESP-NOW v1 (node → gateway):** [`alona-os-firmware/docs/esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) — **documented**; **gateway receive + MQTT forward** implemented in **`alona-os-firmware/gateway/`** (+ **`components/alona_protocol`**); bench sender **`examples/espnow_fake_node`** (channel-only, no Wi-Fi join)
 - **MQTT v1 (gateway → Pi):** [`alona-os-firmware/docs/esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md) — **documented**; backend ingest **implemented**
-- `alona-os-firmware` — README + contract docs, **no nodes flashed, no firmware source yet**
+- `alona-os-firmware` — gateway firmware + fake node + **`docs/gateway-setup.md`**; MVP transport is **best-effort** (not reliable delivery)
 - Backend seeds: Living Room ESP32 `data_source`, `device`, `sensors`; target streams `env_living_temp_c`, `env_living_rh`
 - `AlonaIngest.Adapters.Esp32Adapter` — **gateway** MQTT JSON → v1 envelope maps; **`TopicRouter`** invokes normalize + ingest for configured topics
 
@@ -418,7 +418,7 @@ Sensor node(s)  --ESP-NOW-->  Gateway ESP32  --MQTT JSON v1-->
   → Measurements.ingest_point/1
   → measurements + current_values → Broadcast → LiveViews
 
-Backend implements only the gateway → MQTT leg. ESP-NOW pairing and forwarding are firmware-side.
+Backend implements only the broker → ingest leg. ESP-NOW pairing and gateway bridging are **firmware-side** (`alona-os-firmware/gateway`).
 
 Also (transport-agnostic scripts / HTTP later):
 Payload (v1 envelope map / JSON) → AlonaIngest.Ingest.ingest/1 → same path as above
@@ -428,7 +428,7 @@ Payload (v1 envelope map / JSON) → AlonaIngest.Ingest.ingest/1 → same path a
 
 | Hop | Doc | Backend |
 |-----|-----|---------|
-| Node → gateway | [`esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) | Not in scope |
+| Node → gateway | [`esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) | ESP-IDF gateway + fake node (`alona-os-firmware`) |
 | Gateway → Pi | [`esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md) | `Esp32Adapter` + MQTT subscriber |
 
 **Current risks:**
@@ -441,7 +441,7 @@ Payload (v1 envelope map / JSON) → AlonaIngest.Ingest.ingest/1 → same path a
 
 **Planned next step:**
 
-Implement **ESP-NOW node + gateway firmware** per [`esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) and [`esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md), harden gateway MQTT on the Pi (TLS/auth, backoff/tuning optional), then Victron/`VictronAdapter` separately.
+Ship **production ESP-NOW sensor node** firmware (real sensors, pairing, power), harden gateway MQTT on the Pi (TLS/auth, backoff/tuning optional), then Victron/`VictronAdapter` separately. Gateway reference implementation exists under **`alona-os-firmware/gateway/`**.
 
 ---
 
@@ -455,7 +455,7 @@ Implement **ESP-NOW node + gateway firmware** per [`esp32-espnow-v1.md`](alona-o
 - Cross-context coupling: Tasks/Finance → Events; all use coarse `broadcast_dashboard`
 - Single monolithic migration — harder to evolve schema in parallel branches
 - Envelope ingest + MQTT `TopicRouter` covered by tests; broker integration harness still deferred
-- Firmware not shipped — integration risk until gateways publish v1 MQTT and nodes send ESP-NOW frames
+- Gateway ESP-IDF exists but **MVP transport only** — bench fake node is not a production sensor; RF pairing/encryption and reliable delivery still open
 - `Topology.Domain` naming vs DDD “domain” confuses contributors
 
 ---
@@ -485,9 +485,9 @@ Implement **ESP-NOW node + gateway firmware** per [`esp32-espnow-v1.md`](alona-o
 
 # 10. Current next milestone
 
-Ship **ESP-NOW node + gateway firmware** per [`esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) and [`esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md), add broker auth/TLS for non-LAN setups, consider idempotency/out-of-order handling, then start **Cerbo GX / VictronAdapter** ingestion as a parallel track.
+Ship **production ESP-NOW sensor node firmware** (per [`esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md)) — real readings, pairing/allowlist, and power strategy — while treating the existing **`alona-os-firmware/gateway/`** path as the reference bridge to [`esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md). In parallel when useful: broker auth/TLS on the Pi for non-LAN setups, then **Cerbo GX / VictronAdapter**.
 
-Envelope → Point → `ingest_point/1` and the **gateway MQTT path** toward `env_living_temp_c` / `env_living_rh` are **done**; **ESP-NOW v1** and **MQTT v1** contracts are **documented**. Continue to treat Victron-wide mapping plus placeholder pages polish as separate scopes.
+**ESP-IDF gateway + bench fake node** land in **`alona-os-firmware`** (`gateway/`, `examples/espnow_fake_node`, `docs/gateway-setup.md`). Envelope → Point → `ingest_point/1` and **`Esp32Adapter`** on **`alona/esp32/living-room/telemetry`** remain **done** in core.
 
 ---
 
@@ -498,7 +498,7 @@ Envelope → Point → `ingest_point/1` and the **gateway MQTT path** toward `en
 | Energy slugs | `energy_battery_soc`, `energy_pv_kw`, `energy_house_load_kw`, `energy_battery_flow_kw`, `energy_generator_status` |
 | Water slugs | `water_tank_percent`, `water_tank_liters`, `water_daily_liters_estimate`, `water_well_status`, `water_pump_status` |
 | Env slugs | `env_*_temp_c`, `env_*_rh` (living, bedroom, bathroom) |
-| ESP32 ESP-NOW (node → gateway v1) | [`alona-os-firmware/docs/esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) |
+| ESP32 ESP-NOW (node → gateway v1) | [`alona-os-firmware/docs/esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md); gateway build [`alona-os-firmware/docs/gateway-setup.md`](alona-os-firmware/docs/gateway-setup.md) |
 | ESP32 MQTT (gateway → Pi, MVP topic + v1) | `alona/esp32/living-room/telemetry`; [`alona-os-firmware/docs/esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md); operator summary `apps/alona_ingest/README.md`; `ALONA_MQTT_*` + `mqtt_runtime.exs` |
 | Default property | `default-site` (`properties.slug`) |
 | Ingest API | `AlonaIngest.Ingest.ingest/1`, `AlonaCore.Measurements.ingest_point/1`, `ingest_points/1` |

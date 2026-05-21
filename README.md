@@ -40,8 +40,11 @@ Open in Cursor so `.cursor/rules` apply across core, infra, and firmware:
 | **`scripts/`** | `v0-ui-diff.sh` — compare v0 export trees |
 | **`org/`** | Org branding assets |
 
+See **`alona-os-firmware/README.md`** → **Property manifest** for **`property.local.json`** + **`scripts/sync_property_manifest.py`** (single source for gateway Wi‑Fi/MQTT and shared ESP‑NOW channel/MAC).
+
 ## Quick links
 
 - **Local app dev:** `alona-os-core/README.md` — `./setup.sh`, `mix phx.server`
 - **Pi host setup:** `alona-os-infra/README.md` — `scripts/setup-pi.sh`
 - **Firmware:** `alona-os-firmware/README.md`
+- **Firmware one-file config:** `alona-os-firmware/property.local.json.example` → `scripts/sync_property_manifest.py` (see `alona-os-firmware/scripts/README-property-manifest.md`)

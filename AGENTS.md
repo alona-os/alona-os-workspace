@@ -45,11 +45,11 @@ Extend **real ingest coverage** beyond the Living Room MVP (production ESP-NOW s
 
 **Apps:**
 
-| App | Role |
-|-----|------|
-| `alona_core` | Ecto schemas, contexts, Repo, PubSub |
+| App            | Role                                                                                                                   |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| `alona_core`   | Ecto schemas, contexts, Repo, PubSub                                                                                   |
 | `alona_ingest` | Telemetry envelope ingest + MQTT (Living Room ESP32 MVP); depends on `alona_core`; **not** depended on by `alona_core` |
-| `alona_ui` | Phoenix endpoint + LiveViews; depends on `alona_core` and `alona_ingest` (OTP starts ingest with the umbrella) |
+| `alona_ui`     | Phoenix endpoint + LiveViews; depends on `alona_core` and `alona_ingest` (OTP starts ingest with the umbrella)         |
 
 **Key paths:** `apps/alona_core/`, `apps/alona_ingest/`, `apps/alona_ui/`, `config/`, migrations under `apps/alona_core/priv/repo/migrations/` (initial MVP + `add_properties_scope`).
 
@@ -309,15 +309,15 @@ Extend **real ingest coverage** beyond the Living Room MVP (production ESP-NOW s
 
 **Pages with real backend data (measurements / core contexts):**
 
-| Route | LiveView | Data source |
-|-------|----------|-------------|
-| `/` | CommandCenterLive | `DashboardPresenter` + slugs |
-| `/energy` | EnergyLive | `Measurements` + `Events` |
-| `/water` | WaterLive | `Measurements` |
-| `/environment` | EnvironmentLive | `DashboardPresenter.room_cards/1` |
-| `/timeline` | TimelineLive | `Events` |
-| `/tasks` | TasksLive | `Tasks` (+ `Repo` once) |
-| `/finance` | FinanceLive | `Finance` |
+| Route          | LiveView          | Data source                       |
+| -------------- | ----------------- | --------------------------------- |
+| `/`            | CommandCenterLive | `DashboardPresenter` + slugs      |
+| `/energy`      | EnergyLive        | `Measurements` + `Events`         |
+| `/water`       | WaterLive         | `Measurements`                    |
+| `/environment` | EnvironmentLive   | `DashboardPresenter.room_cards/1` |
+| `/timeline`    | TimelineLive      | `Events`                          |
+| `/tasks`       | TasksLive         | `Tasks` (+ `Repo` once)           |
+| `/finance`     | FinanceLive       | `Finance`                         |
 
 **Pages that are mostly placeholders** (shell nav only, dashed card copy):
 
@@ -428,10 +428,10 @@ Payload (v1 envelope map / JSON) → AlonaIngest.Ingest.ingest/1 → same path a
 
 **Wire contracts:**
 
-| Hop | Doc | Backend |
-|-----|-----|---------|
+| Hop            | Doc                                                               | Backend                                                                                                     |
+| -------------- | ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Node → gateway | [`esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md) | ESP-IDF gateway + **`examples/temp_humidity_node`** + **`examples/espnow_fake_node`** (`alona-os-firmware`) |
-| Gateway → Pi | [`esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md) | `Esp32Adapter` + MQTT subscriber |
+| Gateway → Pi   | [`esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md)     | `Esp32Adapter` + MQTT subscriber                                                                            |
 
 **Current risks:**
 
@@ -487,25 +487,57 @@ Extend **`examples/temp_humidity_node`** toward production nodes — **real sens
 
 # 10. Current next milestone
 
-Ship **production ESP-NOW sensor node firmware** (per [`esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md)) — **replace fake readings** in **`examples/temp_humidity_node`** with real sensors via **`read_temperature_humidity()`**, then pairing/allowlist and power/deep-sleep strategy — while treating the existing **`alona-os-firmware/gateway/`** path as the reference bridge to [`esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md). In parallel when useful: broker auth/TLS on the Pi for non-LAN setups, then **Cerbo GX / VictronAdapter**.
+Ship the first production-ready read telemetry path for ESP32 devices: stable device dev workflow, real temp/RH sensor reads, and multi-node deployment across the first rooms. Keep command/actuation work out of scope until read telemetry is reliable.
 
-**ESP-IDF gateway + structured temp/humidity node + bench fake node** land in **`alona-os-firmware`** (`gateway/`, `examples/temp_humidity_node`, `examples/espnow_fake_node`, `docs/gateway-setup.md`). Envelope → Point → `ingest_point/1` and **`Esp32Adapter`** on **`alona/esp32/living-room/telemetry`** remain **done** in core.
+# 11. Future tasks backlog
+
+These are **planned follow-up tasks**, not current implementation state. Discuss and refine after the first two device milestones are clear.
+
+1. **Milestone 1 — Set up the device development process**
+   - Define the repeatable local workflow for ESP-IDF device work: build, flash, monitor, configure manifests, test gateway/node communication, and document the operator/dev loop.
+   - Keep the process friendly for frequent iteration on `gateway/`, `examples/temp_humidity_node`, and future production node firmware.
+
+2. **Milestone 2 — Send real sensor values from devices**
+   - Replace fake `read_temperature_humidity()` values in `examples/temp_humidity_node` with real sensor reads.
+   - Keep serialization through `alona_espnow_v1_build()` and preserve the existing ESP-NOW → gateway → MQTT → ingest contract.
+   - Validate end-to-end that real readings update `env_living_temp_c` and `env_living_rh` in `current_values`.
+
+3. **Milestone 3 — Deploy three temp/RH nodes across rooms**
+   - Reuse the stabilized temp/RH node pattern with distinct `device_id` values and per-room stream mappings.
+   - Bring the first three physical room sensors online and verify that each updates the correct dashboard/current value streams.
+   - Use this milestone to validate that adding new read-only devices is mostly configuration + seeding, not custom backend work.
+
+4. **Milestone 4 — Add the well distance sensor node**
+   - Introduce the first non-temp/RH node type for well monitoring.
+   - Add distance reading support (`distance_cm`) and define calibration rules for converting raw distance into useful water-level values.
+   - Add or map streams such as `water_well_distance_cm` and a derived water level value when the calibration model is decided.
+   - Treat this as the first real extensibility test for multiple sensor/device types.
+
+5. **Milestone 5 — Add power management for battery nodes**
+   - Add deep sleep support to production sensor nodes once the read telemetry path is stable.
+   - Add battery voltage reporting and map it into telemetry streams or device health state.
+   - Emit low-battery events/alerts when thresholds are defined.
+   - Keep reliability simple at first: predictable wake → read → send → sleep flow before adding retries or complex offline logic.
+
+6. **Discuss and decide the next device roadmap**
+   - Decide sequencing for pairing/allowlists, encryption, retries, node identity hardening, error reporting, and additional sensor/device types.
+   - Do not implement command/actuation concepts here yet; keep read telemetry production-ready first.
 
 ---
 
 # Appendix — quick reference
 
-| Item | Location |
-|------|----------|
-| Energy slugs | `energy_battery_soc`, `energy_pv_kw`, `energy_house_load_kw`, `energy_battery_flow_kw`, `energy_generator_status` |
-| Water slugs | `water_tank_percent`, `water_tank_liters`, `water_daily_liters_estimate`, `water_well_status`, `water_pump_status` |
-| Env slugs | `env_*_temp_c`, `env_*_rh` (living, bedroom, bathroom) |
-| ESP32 ESP-NOW (node → gateway v1) | [`alona-os-firmware/docs/esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md); node template [`examples/temp_humidity_node`](alona-os-firmware/examples/temp_humidity_node/README.md); gateway build [`alona-os-firmware/docs/gateway-setup.md`](alona-os-firmware/docs/gateway-setup.md) |
-| ESP32 MQTT (gateway → Pi, MVP topic + v1) | `alona/esp32/living-room/telemetry`; [`alona-os-firmware/docs/esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md); operator summary `apps/alona_ingest/README.md`; `ALONA_MQTT_*` + `mqtt_runtime.exs` |
-| Default property | `default-site` (`properties.slug`) |
-| Ingest API | `AlonaIngest.Ingest.ingest/1`, `AlonaCore.Measurements.ingest_point/1`, `ingest_points/1` |
-| Envelope v1 | `AlonaIngest.Telemetry.Envelope` |
-| Telemetry struct | `AlonaCore.Telemetry.Point` |
-| Low-level write | `AlonaCore.Measurements.record_measurement_and_current!/1` |
-| Dev setup | `alona-os-core/setup.sh`, `mix phx.server` — see `.cursor/rules/alona-os-setup.mdc` |
-| Pi setup | `alona-os-infra/scripts/setup-pi.sh` |
+| Item                                      | Location                                                                                                                                                                                                                                                                                             |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Energy slugs                              | `energy_battery_soc`, `energy_pv_kw`, `energy_house_load_kw`, `energy_battery_flow_kw`, `energy_generator_status`                                                                                                                                                                                    |
+| Water slugs                               | `water_tank_percent`, `water_tank_liters`, `water_daily_liters_estimate`, `water_well_status`, `water_pump_status`                                                                                                                                                                                   |
+| Env slugs                                 | `env_*_temp_c`, `env_*_rh` (living, bedroom, bathroom)                                                                                                                                                                                                                                               |
+| ESP32 ESP-NOW (node → gateway v1)         | [`alona-os-firmware/docs/esp32-espnow-v1.md`](alona-os-firmware/docs/esp32-espnow-v1.md); node template [`examples/temp_humidity_node`](alona-os-firmware/examples/temp_humidity_node/README.md); gateway build [`alona-os-firmware/docs/gateway-setup.md`](alona-os-firmware/docs/gateway-setup.md) |
+| ESP32 MQTT (gateway → Pi, MVP topic + v1) | `alona/esp32/living-room/telemetry`; [`alona-os-firmware/docs/esp32-mqtt-v1.md`](alona-os-firmware/docs/esp32-mqtt-v1.md); operator summary `apps/alona_ingest/README.md`; `ALONA_MQTT_*` + `mqtt_runtime.exs`                                                                                       |
+| Default property                          | `default-site` (`properties.slug`)                                                                                                                                                                                                                                                                   |
+| Ingest API                                | `AlonaIngest.Ingest.ingest/1`, `AlonaCore.Measurements.ingest_point/1`, `ingest_points/1`                                                                                                                                                                                                            |
+| Envelope v1                               | `AlonaIngest.Telemetry.Envelope`                                                                                                                                                                                                                                                                     |
+| Telemetry struct                          | `AlonaCore.Telemetry.Point`                                                                                                                                                                                                                                                                          |
+| Low-level write                           | `AlonaCore.Measurements.record_measurement_and_current!/1`                                                                                                                                                                                                                                           |
+| Dev setup                                 | `alona-os-core/setup.sh`, `mix phx.server` — see `.cursor/rules/alona-os-setup.mdc`                                                                                                                                                                                                                  |
+| Pi setup                                  | `alona-os-infra/scripts/setup-pi.sh`                                                                                                                                                                                                                                                                 |

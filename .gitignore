@@ -8,10 +8,3 @@
 # memory bundles for ChatGPT / other AI tools (generated locally)
 memory/*
 !memory/README.md
-
-# redundant v0 export archives (canonical tree: ref/alona-os-ui-design/)
-ref/*.zip
-
-# if you install deps inside the v0 reference tree
-ref/**/node_modules/
-ref/**/.next/

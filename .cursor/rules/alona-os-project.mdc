@@ -18,9 +18,9 @@ Prioritize resilience and clear boundaries over feature sprawl.
 | **`alona-os-core/`** | Elixir **umbrella** — app code, DB, UI (primary dev target) |
 | **`alona-os-infra/`** | **Pi host** bootstrap — Postgres, Mosquitto, env templates, systemd examples |
 | **`alona-os-firmware/`** | ESP32 sensor nodes + gateways (ESP-NOW → MQTT; separate git repo; often empty in this workspace) |
-| **`ref/alona-os-ui-design*`** | v0/React UI reference for LiveView parity (see `v0-liveview-sync.mdc`) |
-| **`scripts/`** | Repo-level helpers (e.g. v0 diff) |
-| **`.cursor/rules/`** | LLM context and workflows (this file + setup + UI sync) |
+| **`ref/logo/`** | Branding assets (SVG/PNG) |
+| **`scripts/`** | Repo-level helpers (e.g. ChatGPT context sync) |
+| **`.cursor/rules/`** | LLM context and workflows (this file + setup) |
 | **`AGENTS.md`** (workspace root) | **Implementation state** — what is built vs stub; update after features ship (`alona-os-agents-state.mdc`). Also uploaded to ChatGPT web for planning. |
 | **`scripts/chatgpt/CHATGPT_RULES.md`** | **ChatGPT web only** — synced into `memory/chatgpt/` upload as `CHATGPT_RULES.md`; Cursor ignores it. |
 
@@ -54,14 +54,10 @@ Prioritize resilience and clear boundaries over feature sprawl.
 | MQTT adapters, broker client | `alona-os-core/apps/alona_ingest/` |
 | Pi packages, Mosquitto, systemd | **`alona-os-infra/`** — not `alona-os-core` |
 | ESP32 firmware | **`alona-os-firmware/`** |
-| UI design sync from v0 | `ref/` + `.cursor/commands/sync-v0-ui-to-liveview.md` |
-
-Do not copy `ref/.../lib/mock-data.ts` into LiveView without explicit approval (see UI sync rule).
 
 ## Related Cursor rules
 
 - **Setup (dev machine + Raspberry Pi):** `alona-os-setup.mdc`
-- **v0 → LiveView:** `v0-liveview-sync.mdc` + command `/sync-v0-ui-to-liveview`
 - **Implementation state (update after features):** `alona-os-agents-state.mdc` → workspace `AGENTS.md`
 
 Human READMEs: `alona-os-core/README.md`, `alona-os-infra/README.md`.

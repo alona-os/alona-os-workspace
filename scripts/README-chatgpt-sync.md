@@ -21,7 +21,7 @@ chmod +x scripts/sync-chatgpt-context.sh   # once
 - **`memory/chatgpt/alona-iot/`** — folder to drag into the project.
 - **`memory/chatgpt/alona-iot.zip`** — single archive if the UI prefers one upload.
 
-Other tools can use sibling folders under `memory/` later (e.g. `v0/`).
+Other tools can use sibling folders under `memory/` later.
 - **`_SYNC_METADATA.txt`** — timestamp, git revision, `bundle_policy: docs-only`.
 
 Dry-run:
@@ -36,7 +36,7 @@ Dry-run:
 |----------|----------------|
 | `AGENTS.md`, `CHATGPT_RULES.md` (from `scripts/chatgpt/`), `.cursor/rules/*.mdc` | `.ex`, `.exs`, tests, migrations, seeds |
 | `.cursor/rules/*.mdc` | `config/*.exs`, shell scripts, `priv/` |
-| Repo **README.md** files only | `ref/` (v0 trees, PDFs), `_build`, `deps`, static assets |
+| Repo **README.md** files only | `_build`, `deps`, static assets |
 
 Edit [`chatgpt-context.manifest`](chatgpt-context.manifest) to add or remove **markdown / `.mdc` paths only**. The script rejects any other file type even if listed in the manifest.
 

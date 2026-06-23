@@ -1,6 +1,6 @@
 # Alona OS — Workspace
 
-Meta repository for working on the **alona-os system** in one Cursor/IDE workspace: shared rules, UI reference exports, and helper scripts. Application, host, and firmware code live in separate repos (cloned as siblings below).
+Meta repository for working on the **alona-os system** in one Cursor/IDE workspace: shared rules and helper scripts. Application, host, and firmware code live in separate repos (cloned as siblings below).
 
 ## Repositories
 
@@ -34,10 +34,10 @@ Open in Cursor so `.cursor/rules` apply across core, infra, and firmware:
 | Path | Purpose |
 |------|---------|
 | **`alona-os.code-workspace`** | Multi-root workspace — all repos in one Cursor window + SCM |
-| **`.cursor/rules/`** | Project context, setup, v0 → LiveView sync |
-| **`.cursor/commands/`** | Agent workflows (e.g. `/sync-v0-ui-to-liveview`) |
-| **`ref/`** | v0 UI design export, logos, reference PDF |
-| **`scripts/`** | `v0-ui-diff.sh` — compare v0 export trees |
+| **`.cursor/rules/`** | Project context, setup, implementation state |
+| **`.cursor/commands/`** | Agent workflows (e.g. `/sync-chatgpt-context`) |
+| **`ref/logo/`** | Branding assets |
+| **`scripts/`** | ChatGPT context sync and other helpers |
 | **`org/`** | Org branding assets |
 
 See **`alona-os-firmware/README.md`** → **Property manifest** for **`property.local.json`** + **`scripts/sync_property_manifest.py`** (single source for gateway Wi‑Fi/MQTT and shared ESP‑NOW channel/MAC).

@@ -6,11 +6,10 @@
 # implementation state (source of truth for ChatGPT)
 AGENTS.md
 
-# cursor rules (project structure, setup, UI sync)
+# cursor rules (project structure, setup)
 .cursor/rules/alona-os-project.mdc
 .cursor/rules/alona-os-setup.mdc
 .cursor/rules/alona-os-agents-state.mdc
-.cursor/rules/v0-liveview-sync.mdc
 .cursor/rules/chatgpt-context-sync.mdc
 
 # high-level readmes only (no application source)

@@ -1,6 +1,6 @@
 # Alona OS — Implementation State
 
-Last updated: **2026-05-21**
+Last updated: **2026-06-23**
 
 Shared context for Cursor, ChatGPT, and humans. Describes what is **actually implemented**, not the long-term vision. Update this file when a feature crosses from stub → real (see `.cursor/rules/alona-os-agents-state.mdc`).
 
@@ -15,7 +15,7 @@ Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generate
 **Current phase:**
 
 - [x] Architecture exploration
-- [x] UI prototyping (v0 → LiveView parity in progress)
+- [x] UI prototyping (LiveView shell)
 - [x] Telemetry foundation (schema + seeds + read path)
 - [x] Real device integration (Living Room ESP32 gateway MQTT → ingest; ESP-IDF ESP-NOW gateway + **`examples/temp_humidity_node`** (fake temp/RH only; shared **`alona_espnow_v1_build()`**) + bench **`examples/espnow_fake_node`** in **alona-os-firmware**; production sensor driver / pairing / deep sleep not yet)
 - [ ] Automation engine
@@ -331,9 +331,7 @@ Extend **real ingest coverage** beyond the Living Room MVP (production ESP-NOW s
 
 **UI source:**
 
-- Visual structure synced from `ref/alona-os-ui-design*` (v0 React references)
-- See `.cursor/rules/v0-liveview-sync.mdc` and `/sync-v0-ui-to-liveview` command
-- Do not copy `mock-data.ts` into LiveView without explicit approval
+- LiveView pages and shared components in `alona-os-core/apps/alona_ui/`
 
 **Important:**
 

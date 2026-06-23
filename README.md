@@ -35,9 +35,9 @@ Open in Cursor so `.cursor/rules` apply across core, infra, and firmware:
 |------|---------|
 | **`alona-os.code-workspace`** | Multi-root workspace — all repos in one Cursor window + SCM |
 | **`.cursor/rules/`** | Project context, setup, implementation state |
-| **`.cursor/commands/`** | Agent workflows (e.g. `/sync-chatgpt-context`) |
+| **`.cursor/commands/`** | Agent workflows (optional) |
 | **`ref/logo/`** | Branding assets |
-| **`scripts/`** | ChatGPT context sync and other helpers |
+| **`scripts/`** | Repo-level helpers |
 | **`org/`** | Org branding assets |
 
 See **`alona-os-firmware/README.md`** → **Property manifest** for **`property.local.json`** + **`scripts/sync_property_manifest.py`** (single source for gateway Wi‑Fi/MQTT and shared ESP‑NOW channel/MAC).

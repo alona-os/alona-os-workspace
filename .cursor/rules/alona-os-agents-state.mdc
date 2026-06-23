@@ -1,5 +1,5 @@
 ---
-description: Keep workspace AGENTS.md accurate after features ship; shared Cursor/ChatGPT implementation state.
+description: Keep workspace AGENTS.md accurate after features ship; shared implementation state.
 alwaysApply: true
 ---
 
@@ -9,7 +9,7 @@ alwaysApply: true
 
 **`AGENTS.md`** at the workspace root (`alona-os/AGENTS.md`) is the **implementation state** document: what exists vs stubs, integration status, risks, and the **current next milestone**.
 
-- **Cursor** and **ChatGPT** should treat it as shared context alongside `.cursor/rules/alona-os-project.mdc` and `alona-os-setup.mdc`.
+- **Cursor** (and humans) should treat it as shared context alongside `.cursor/rules/alona-os-project.mdc` and `alona-os-setup.mdc`.
 - **`alona-os-core/AGENTS.md`** remains Phoenix/Elixir **coding** guidelines (formatting, LiveView patterns). Do not merge implementation state into that file.
 
 ## When to update `AGENTS.md`

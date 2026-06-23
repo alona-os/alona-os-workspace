@@ -2,9 +2,7 @@
 
 Last updated: **2026-06-23**
 
-Shared context for Cursor, ChatGPT, and humans. Describes what is **actually implemented**, not the long-term vision. Update this file when a feature crosses from stub → real (see `.cursor/rules/alona-os-agents-state.mdc`).
-
-Shared with **ChatGPT web** via the memory bundle (`memory/chatgpt/alona-iot/`); **Cursor** reads this file in the repo directly. ChatGPT-only prompt rules live in the bundle as `CHATGPT_RULES.md` (source: `scripts/chatgpt/CHATGPT_RULES.md`) — not at repo root.
+Shared context for Cursor and humans. Describes what is **actually implemented**, not the long-term vision. Update this file when a feature crosses from stub → real (see `.cursor/rules/alona-os-agents-state.mdc`). For other assistants (e.g. ChatGPT), attach or paste this file manually when needed.
 
 Phoenix/LiveView coding guidelines remain in `alona-os-core/AGENTS.md` (generated Phoenix defaults).
 

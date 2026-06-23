@@ -5,6 +5,6 @@
 
 .DS_Store
 
-# memory bundles for ChatGPT / other AI tools (generated locally)
+# memory — optional local assistant exports (see memory/README.md)
 memory/*
 !memory/README.md

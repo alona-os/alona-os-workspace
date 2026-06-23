@@ -1,14 +1,7 @@
-# Memory (cross-AI context)
+# Memory (local assistant exports)
 
-Docs and rules synced from this repo for **ChatGPT**, **Cursor**, and other assistants — not application source code.
+Optional folder for **local, gitignored** files you hand to other assistants (e.g. pasted exports, notes).
 
-| Layer | Canonical location | In ChatGPT bundle? |
-|-------|-------------------|-------------------|
-| Implementation state | `AGENTS.md` (repo root) | Yes → `alona-iot/AGENTS.md` |
-| ChatGPT prompt rules | `scripts/chatgpt/CHATGPT_RULES.md` | Yes → `alona-iot/CHATGPT_RULES.md` |
-| Cursor rules | `.cursor/rules/` | Yes (copied) |
-| Application code | `alona-os-core/` | **No** |
+**Canonical implementation state** lives at the repo root: **`AGENTS.md`**. Cursor reads that file and `.cursor/rules/` directly — nothing in `memory/` is required for development.
 
-`CHATGPT_RULES.md` exists **only in this upload**, not at the repo root. **Cursor** does not use it.
-
-Regenerate: `./scripts/sync-chatgpt-context.sh --zip --open`
+Contents of `memory/*` are gitignored except this README.

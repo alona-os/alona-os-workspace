@@ -19,10 +19,9 @@ Prioritize resilience and clear boundaries over feature sprawl.
 | **`alona-os-infra/`** | **Pi host** bootstrap — Postgres, Mosquitto, env templates, systemd examples |
 | **`alona-os-firmware/`** | ESP32 sensor nodes + gateways (ESP-NOW → MQTT; separate git repo; often empty in this workspace) |
 | **`ref/logo/`** | Branding assets (SVG/PNG) |
-| **`scripts/`** | Repo-level helpers (e.g. ChatGPT context sync) |
+| **`scripts/`** | Repo-level helpers |
 | **`.cursor/rules/`** | LLM context and workflows (this file + setup) |
-| **`AGENTS.md`** (workspace root) | **Implementation state** — what is built vs stub; update after features ship (`alona-os-agents-state.mdc`). Also uploaded to ChatGPT web for planning. |
-| **`scripts/chatgpt/CHATGPT_RULES.md`** | **ChatGPT web only** — synced into `memory/chatgpt/` upload as `CHATGPT_RULES.md`; Cursor ignores it. |
+| **`AGENTS.md`** (workspace root) | **Implementation state** — what is built vs stub; update after features ship (`alona-os-agents-state.mdc`) |
 
 ## Umbrella apps (`alona-os-core/apps/`)
 
